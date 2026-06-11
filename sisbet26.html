@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СИСЬбет 2026</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #080c14; --surface: #0e1520; --card: #131d2e; --border: #1a2540;
+    --gold: #f5b800; --gold-dim: #7a5c00; --teal: #00d4a0; --blue: #38bdf8;
+    --purple: #a78bfa; --red: #f87171; --muted: #4a5878; --text: #dce6f5; --sub: #8899b8;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Inter, sans-serif; min-height: 100vh; padding-bottom: 40px; }
+
+  /* HEADER */
+  .header { padding: 24px 20px 0; display: flex; flex-direction: column; align-items: center; }
+  .tournament-name {
+    margin-top: 10px; font-size: 1.5rem; font-weight: 900; letter-spacing: 3px; text-transform: uppercase;
+    background: linear-gradient(90deg, #f5b800, #ff6ec7, #f5b800); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .tournament-sub { font-size: 0.62rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+  .stats-row { margin-top: 16px; display: flex; justify-content: center; gap: 28px; }
+  .stat-val { font-size: 1.1rem; font-weight: 700; text-align: center; }
+  .stat-lbl { font-size: 0.65rem; color: var(--muted); text-align: center; margin-top: 2px; letter-spacing: 0.5px; }
+
+  /* TABS */
+  .tabs { display: flex; justify-content: center; gap: 2px; margin: 18px 16px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    cursor: pointer; padding: 8px 16px; font-size: 0.82rem; font-weight: 400; color: var(--muted); transition: all 0.15s; }
+  .tab-btn.active { color: var(--gold); font-weight: 700; border-bottom-color: var(--gold); }
+
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* LEADERBOARD */
+  .lb-card { border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--border); }
+  .lb-card.leader { background: linear-gradient(90deg, #1a2200 0%, var(--card) 100%); border-color: var(--gold-dim); }
+  .lb-rank { font-size: 0.9rem; width: 28px; text-align: center; color: var(--muted); font-weight: 700; }
+  .lb-rank.top { font-size: 1.4rem; }
+  .lb-name { font-weight: 700; font-size: 0.95rem; }
+  .lb-tags { margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .tag-teal { background: #00d4a018; color: var(--teal); }
+  .tag-blue { background: #38bdf818; color: var(--blue); }
+  .tag-purple { background: #a78bfa18; color: var(--purple); }
+  .lb-pts { font-size: 1.6rem; font-weight: 800; line-height: 1; text-align: right; }
+  .lb-pts-lbl { font-size: 0.65rem; color: var(--muted); margin-top: 2px; text-align: right; }
+  .pts-legend { text-align: center; margin-top: 20px; color: var(--muted); font-size: 0.75rem; }
+
+  /* BETS TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 480px; }
+  th { background: var(--surface); color: var(--muted); padding: 8px 12px; font-weight: 600; font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+  th.left { text-align: left; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; text-align: center; }
+  td.left { text-align: left; }
+  .match-name { font-weight: 600; font-size: 0.78rem; }
+  .match-result-label { font-size: 0.72rem; margin-top: 2px; }
+  .bet-score { font-weight: 600; }
+  .bet-pts { font-size: 0.65rem; margin-top: 2px; }
+
+  /* MATCHES */
+  .match-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .match-head { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+  .match-title { font-weight: 700; font-size: 0.95rem; }
+  .match-date { color: var(--muted); font-size: 0.72rem; margin-top: 2px; }
+  .match-score { font-size: 1.4rem; font-weight: 800; color: var(--teal); }
+  .match-pending { font-size: 0.75rem; color: var(--muted); background: var(--surface); padding: 4px 10px; border-radius: 20px; }
+  .bets-row { padding: 10px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .bet-chip { background: var(--surface); border-radius: 8px; padding: 6px 10px; min-width: 90px; }
+  .bet-chip-name { font-size: 0.65rem; color: var(--muted); margin-bottom: 2px; }
+  .bet-chip-val { font-weight: 700; font-size: 0.9rem; display: flex; justify-content: space-between; }
+
+  /* RULES */
+  .rule-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; display: flex; gap: 16px; }
+  .rule-num { font-size: 1rem; font-weight: 900; color: var(--gold); font-family: monospace; min-width: 28px; padding-top: 1px; }
+  .rule-text { font-size: 0.88rem; line-height: 1.5; }
+  .scoring-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 0.78rem; line-height: 1.7; color: var(--muted); }
+  .scoring-box .stitle { color: var(--sub); font-weight: 600; margin-bottom: 6px; }
+
+  /* LOGO SVG */
+  .logo-wrap { margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-wrap">
+    <svg width="160" height="72" viewBox="0 0 160 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g transform="translate(12,4)">
+        <path d="M20 8 L24 36 Q28 44 34 44 Q40 44 44 36 L48 8 Z" fill="none" stroke="#f5b800" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M20 12 Q10 12 10 22 Q10 30 20 30" fill="none" stroke="#f5b800" stroke-width="2" stroke-linecap="round"/>
+        <path d="M48 12 Q58 12 58 22 Q58 30 48 30" fill="none" stroke="#f5b800" stroke-width="2" stroke-linecap="round"/>
+        <line x1="34" y1="44" x2="34" y2="52" stroke="#f5b800" stroke-width="2.5"/>
+        <path d="M26 52 L42 52 L44 56 L24 56 Z" fill="#f5b800"/>
+        <text x="34" y="28" text-anchor="middle" font-size="10" fill="#f5b800">★</text>
+        <path d="M26 14 Q28 11 31 12" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(76,8)">
+        <text x="0" y="14" font-size="11" font-weight="800" fill="#e0e8f5" letter-spacing="3" font-family="Segoe UI,sans-serif">FIFA</text>
+        <text x="0" y="30" font-size="13" font-weight="900" fill="#f5b800" letter-spacing="1" font-family="Segoe UI,sans-serif">WORLD CUP</text>
+        <rect x="0" y="35" width="26" height="4" rx="1" fill="#BF0A30"/>
+        <rect x="28" y="35" width="26" height="4" rx="1" fill="#FF0000"/>
+        <rect x="56" y="35" width="22" height="4" rx="1" fill="#006847"/>
+        <text x="0" y="56" font-size="22" font-weight="900" fill="white" letter-spacing="-1" font-family="Segoe UI,sans-serif">2026</text>
+        <text x="82" y="44" font-size="7" fill="#4a5878" font-family="Segoe UI,sans-serif">™</text>
+        <text x="0" y="66" font-size="7.5" fill="#4a5878" letter-spacing="1" font-family="Segoe UI,sans-serif">USA · CAN · MEX</text>
+      </g>
+    </svg>
+  </div>
+  <div class="tournament-name">СИСЬбет 2026</div>
+  <div class="tournament-sub">пул ставок друзей</div>
+  <div class="stats-row">
+    <div><div class="stat-val" style="color:var(--teal)" id="stat-prize">20 000 ₽</div><div class="stat-lbl">Призовой фонд</div></div>
+    <div><div class="stat-val" style="color:var(--blue)" id="stat-played">0 / 0</div><div class="stat-lbl">Сыграно</div></div>
+    <div><div class="stat-val" style="color:var(--purple)" id="stat-players">5</div><div class="stat-lbl">Участников</div></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('board')">🏆 Таблица</button>
+  <button class="tab-btn" onclick="showTab('bets')">🎯 Ставки</button>
+  <button class="tab-btn" onclick="showTab('matches')">📅 Матчи</button>
+  <button class="tab-btn" onclick="showTab('rules')">📋 Правила</button>
+</div>
+
+<div id="panel-board" class="panel active"></div>
+<div id="panel-bets" class="panel"></div>
+<div id="panel-matches" class="panel"></div>
+<div id="panel-rules" class="panel"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA — обновляется Клодом после каждого апдейта
+// ═══════════════════════════════════════════════
+const PLAYERS = ["Виктор Б.", "Андрей С.", "Игорь М.", "Евгений", "Иван С."];
+const BUY_IN = 4000;
+
+const MATCHES = [
+  {
+    id: 1, date: "11.06.2026", home: "Мексика", away: "ЮАР", result: null,
+    bets: { "Виктор Б.": [3,0], "Андрей С.": [2,1], "Игорь М.": [2,1], "Евгений": [2,0], "Иван С.": [3,0] }
+  },
+  {
+    id: 2, date: "11.06.2026", home: "Корея", away: "Чехия", result: null,
+    bets: { "Виктор Б.": [2,0], "Игорь М.": [1,1], "Евгений": [1,0], "Иван С.": [1,1] }
+  },
+  {
+    id: 3, date: "11.06.2026", home: "Канада", away: "Босния", result: null,
+    bets: { "Виктор Б.": [1,0], "Игорь М.": [2,1], "Евгений": [1,0], "Иван С.": [4,1] }
+  },
+  {
+    id: 4, date: "11.06.2026", home: "США", away: "Парагвай", result: null,
+    bets: { "Виктор Б.": [0,1], "Игорь М.": [1,0], "Евгений": [2,0], "Иван С.": [2,0] }
+  },
+  {
+    id: 5, date: "11.06.2026", home: "Катар", away: "Швейцария", result: null,
+    bets: { "Виктор Б.": [0,3], "Игорь М.": [0,2], "Евгений": [0,3], "Иван С.": [1,5] }
+  },
+];
+
+const RULES = [
+  { num: "01", text: "Изменение ставки разрешено новым сообщением. Если сообщение помечено «изменено» — ставка не принимается." },
+  { num: "02", text: "С этапа ¼ финала лидер таблицы делает ставку не позднее чем за час до начала матча. Иначе ставка не принимается. Правило действует только на лидера." },
+];
+// ═══════════════════════════════════════════════
+
+function calcScore(bet, result) {
+  if (!result || !bet) return null;
+  const [b1,b2] = bet, [r1,r2] = result;
+  if (b1===r1 && b2===r2) return {pts:3, type:"exact"};
+  if (b1-b2 === r1-r2) return {pts:2, type:"diff"};
+  const out = (a,b) => a>b?1:a<b?-1:0;
+  if (out(b1,b2)===out(r1,r2)) return {pts:1, type:"res"};
+  return {pts:0, type:"miss"};
+}
+
+const TYPE_COLOR = { exact:"var(--teal)", diff:"var(--blue)", res:"var(--purple)", miss:"var(--red)" };
+
+function getStats() {
+  return PLAYERS.map(p => {
+    let pts=0,exact=0,diff=0,res=0,played=0;
+    MATCHES.forEach(m => {
+      if (!m.result) return;
+      const bet = m.bets[p]; if (!bet) return;
+      const r = calcScore(bet, m.result); if (!r) return;
+      pts+=r.pts; played++;
+      if(r.type==="exact") exact++;
+      if(r.type==="diff") diff++;
+      if(r.type==="res") res++;
+    });
+    return {name:p, pts, exact, diff, res, played};
+  }).sort((a,b) => b.pts-a.pts);
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+function renderAll() {
+  const stats = getStats();
+  const played = MATCHES.filter(m=>m.result).length;
+  document.getElementById('stat-prize').textContent = (PLAYERS.length * BUY_IN).toLocaleString('ru-RU') + ' ₽';
+  document.getElementById('stat-played').textContent = played + ' / ' + MATCHES.length;
+  document.getElementById('stat-players').textContent = PLAYERS.length;
+  renderBoard(stats);
+  renderBets(stats);
+  renderMatches();
+  renderRules();
+}
+
+function renderBoard(stats) {
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('panel-board').innerHTML = stats.map((p,i) => {
+    const isFirst = i===0 && p.pts>0;
+    const tags = [
+      p.exact>0 ? `<span class="tag tag-teal">✓ ${p.exact} точных</span>` : '',
+      p.diff>0  ? `<span class="tag tag-blue">≈ ${p.diff} разница</span>` : '',
+      p.res>0   ? `<span class="tag tag-purple">→ ${p.res} исход</span>` : '',
+      p.played===0 ? `<span style="font-size:0.72rem;color:var(--muted)">матчей не сыграно</span>` : '',
+    ].join('');
+    return `<div class="lb-card ${isFirst?'leader':''}">
+      <div class="lb-rank ${i<3?'top':''}">${medals[i]||i+1}</div>
+      <div style="flex:1">
+        <div class="lb-name">${p.name}</div>
+        <div class="lb-tags">${tags}</div>
+      </div>
+      <div>
+        <div class="lb-pts" style="color:${isFirst?'var(--gold)':'var(--text)'}">${p.pts}</div>
+        <div class="lb-pts-lbl">очков</div>
+      </div>
+    </div>`;
+  }).join('') + `<div class="pts-legend">✓ точный счёт = 3 · ≈ разница мячей = 2 · → исход = 1</div>`;
+}
+
+function renderBets() {
+  const rows = MATCHES.map(m => {
+    const resultLabel = m.result
+      ? `<div class="match-result-label" style="color:var(--teal)">Итог: ${m.result[0]}:${m.result[1]}</div>`
+      : `<div class="match-result-label" style="color:var(--muted)">ожидается</div>`;
+    const cells = PLAYERS.map(p => {
+      const bet = m.bets[p];
+      const r = bet && m.result ? calcScore(bet, m.result) : null;
+      if (!bet) return `<td style="color:var(--muted)">—</td>`;
+      const col = r ? TYPE_COLOR[r.type] : 'var(--text)';
+      const pts = r ? (r.pts>0 ? `<div class="bet-pts" style="color:${col}">+${r.pts}</div>` : `<div class="bet-pts" style="color:var(--red)">✕</div>`) : '';
+      return `<td><div class="bet-score" style="color:${col}">${bet[0]}:${bet[1]}</div>${pts}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="left"><div class="match-name">${m.home} — ${m.away}</div>${resultLabel}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+  const heads = PLAYERS.map(p=>`<th>${p}</th>`).join('');
+  document.getElementById('panel-bets').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th class="left" style="min-width:130px">Матч</th>${heads}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function renderMatches() {
+  document.getElementById('panel-matches').innerHTML = [...MATCHES].reverse().map(m => {
+    const scoreEl = m.result
+      ? `<div class="match-score">${m.result[0]} : ${m.result[1]}</div>`
+      : `<div class="match-pending">ожидается</div>`;
+    const chips = PLAYERS.map(p => {
+      const bet = m.bets[p];
+      const r = bet && m.result ? calcScore(bet,m.result) : null;
+      const col = r ? TYPE_COLOR[r.type] : bet ? 'var(--sub)' : 'var(--muted)';
+      const pts = r ? `<span style="font-size:0.7rem;margin-left:4px">${r.pts>0?'+'+r.pts:'✕'}</span>` : '';
+      return `<div class="bet-chip">
+        <div class="bet-chip-name">${p}</div>
+        <div class="bet-chip-val" style="color:${col}">${bet?bet[0]+':'+bet[1]:'—'}${pts}</div>
+      </div>`;
+    }).join('');
+    return `<div class="match-card">
+      <div class="match-head">
+        <div><div class="match-title">${m.home} — ${m.away}</div><div class="match-date">${m.date}</div></div>
+        ${scoreEl}
+      </div>
+      <div class="bets-row">${chips}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRules() {
+  const rulesHtml = RULES.map(r => `<div class="rule-card">
+    <div class="rule-num">${r.num}</div>
+    <div class="rule-text">${r.text}</div>
+  </div>`).join('');
+  document.getElementById('panel-rules').innerHTML = rulesHtml + `
+  <div class="scoring-box">
+    <div class="stitle">Система начисления очков</div>
+    <div>🎯 Точный счёт — <span style="color:var(--teal);font-weight:700">3 очка</span></div>
+    <div>↕️ Правильная разница мячей — <span style="color:var(--blue);font-weight:700">2 очка</span></div>
+    <div>✓ Правильный исход — <span style="color:var(--purple);font-weight:700">1 очко</span></div>
+  </div>`;
+}
+
+renderAll();
+</script>
+</body>
+</html>
