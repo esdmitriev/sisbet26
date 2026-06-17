@@ -56,6 +56,20 @@
   .rule-text { font-size: 0.88rem; line-height: 1.5; }
   .scoring-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 0.78rem; line-height: 1.7; color: var(--muted); }
   .day-header { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 12px 4px 6px; }
+  .player-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .player-tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 7px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+  .player-tab-btn.active { border-color: var(--gold); color: var(--gold); font-weight: 700; background: #1a2200; }
+  .player-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .player-header { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .player-match-row { padding: 10px 16px; border-bottom: 1px solid #0e1520; display: flex; align-items: center; gap: 10px; }
+  .player-match-row:last-child { border-bottom: none; }
+  .pm-match { flex: 1; font-size: 0.82rem; font-weight: 600; }
+  .pm-date { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
+  .pm-bet { font-size: 0.85rem; font-weight: 700; min-width: 40px; text-align: center; }
+  .pm-arrow { color: var(--muted); font-size: 0.75rem; }
+  .pm-result { font-size: 0.85rem; font-weight: 700; min-width: 40px; text-align: center; }
+  .pm-pts { min-width: 44px; text-align: right; font-weight: 800; font-size: 0.9rem; }
+  .pm-badge { font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
   .viz-section { margin-bottom: 28px; }
   .viz-title { font-size: 0.78rem; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
   .heatmap-wrap { overflow-x: auto; }
@@ -115,15 +129,11 @@
 
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('board',this)">🏆 Таблица</button>
-  <button class="tab-btn" onclick="showTab('bets',this)">🎯 Ставки</button>
-  <button class="tab-btn" onclick="showTab('matches',this)">📅 Матчи</button>
   <button class="tab-btn" onclick="showTab('rules',this)">📋 Правила</button>
   <button class="tab-btn" onclick="showTab('viz',this)">📊 Аналитика</button>
 </div>
 
 <div id="panel-board" class="panel active"></div>
-<div id="panel-bets" class="panel"></div>
-<div id="panel-matches" class="panel"></div>
 <div id="panel-rules" class="panel"></div>
 <div id="panel-viz" class="panel"></div>
 
@@ -164,6 +174,14 @@ const MATCHES = [
     bets:{"Виктор Б.":[0,2],"Андрей С.":[1,2],"Игорь М.":[1,3],"Евгений":[0,1],"Иван С.":[1,3]} },
   { id:16, date:"16.06", home:"Иран", away:"Новая Зеландия", result:[2,2],
     bets:{"Виктор Б.":[1,1],"Андрей С.":[1,0],"Игорь М.":[2,0],"Евгений":[2,0],"Иван С.":[2,0]} },
+  { id:17, date:"16.06", home:"Франция", away:"Сенегал", result:[3,1],
+    bets:{"Виктор Б.":[2,0],"Андрей С.":[3,1],"Игорь М.":[3,1],"Евгений":[1,0],"Иван С.":[1,1]} },
+  { id:18, date:"17.06", home:"Ирак", away:"Норвегия", result:[1,4],
+    bets:{"Виктор Б.":[0,1],"Андрей С.":[0,2],"Игорь М.":[0,1],"Евгений":[0,2],"Иван С.":[0,1]} },
+  { id:19, date:"17.06", home:"Аргентина", away:"Алжир", result:[3,0],
+    bets:{"Виктор Б.":[2,0],"Андрей С.":[2,0],"Игорь М.":[1,0],"Евгений":[1,0],"Иван С.":[3,0]} },
+  { id:20, date:"17.06", home:"Австрия", away:"Иордания", result:[3,1],
+    bets:{"Виктор Б.":[1,0],"Андрей С.":[1,0],"Игорь М.":[2,0],"Евгений":[2,0],"Иван С.":[3,0]} },
 ];
 
 const RULES = [
@@ -205,9 +223,75 @@ function showTab(id,btn){
   btn.classList.add('active');
   document.getElementById('panel-'+id).classList.add('active');
   if(id==='viz') setTimeout(renderViz, 50);
+  if(id==='player') renderPlayer(false);
 }
 
 const PLAYER_COLORS = ["#f5b800","#00d4a0","#38bdf8","#a78bfa","#f87171"];
+
+let currentPlayer = 0;
+
+function renderPlayer(panelOnly) {
+  const p = PLAYERS[currentPlayer];
+  const color = PLAYER_COLORS[currentPlayer];
+  const stats = getStats().find(s => s.name === p) || {pts:0,exact:0,diff:0,res:0,played:0};
+
+  // Player selector buttons
+  const btns = PLAYERS.map((name, i) =>
+    `<button class="player-tab-btn ${i===currentPlayer?'active':''}" onclick="currentPlayer=${i};renderPlayer(true)" style="${i===currentPlayer?'border-color:'+PLAYER_COLORS[i]+';color:'+PLAYER_COLORS[i]+';':''}">${name}</button>`
+  ).join('');
+
+  // Matches for this player
+  const rows = MATCHES.map(m => {
+    const bet = m.bets[p];
+    if (!bet) return '';
+    const r = m.result ? calcScore(bet, m.result) : null;
+    const ptsColor = r ? TC[r.type] : 'var(--muted)';
+    const typeLabel = r ? (r.type==='exact'?'точно':r.type==='diff'?'разница':r.type==='res'?'исход':'мимо') : '';
+    const typeBg = r ? (r.type==='exact'?'#00d4a018':r.type==='diff'?'#38bdf818':r.type==='res'?'#a78bfa18':'#f8717118') : '';
+    const resultStr = m.result ? `${m.result[0]}:${m.result[1]}` : '?';
+    const ptsStr = r ? (r.pts>0?'+'+r.pts:'✕') : '—';
+    return `<div class="player-match-row">
+      <div style="flex:1">
+        <div class="pm-match">${m.home} — ${m.away}</div>
+        <div class="pm-date">${m.date}</div>
+      </div>
+      <div class="pm-bet" style="color:${color}">${bet[0]}:${bet[1]}</div>
+      <div class="pm-arrow">→</div>
+      <div class="pm-result" style="color:${m.result?'var(--text)':'var(--muted)'}">${resultStr}</div>
+      <div style="min-width:70px;text-align:right">
+        ${r ? `<span class="pm-badge" style="background:${typeBg};color:${ptsColor}">${typeLabel}</span>` : '<span style="color:var(--muted);font-size:0.72rem">ожидается</span>'}
+      </div>
+      <div class="pm-pts" style="color:${ptsColor}">${ptsStr}</div>
+    </div>`;
+  }).join('');
+
+  // Summary mini-stats
+  const miss = stats.played - stats.exact - stats.diff - stats.res;
+  const acc = stats.played > 0 ? Math.round(((stats.played-miss)/stats.played)*100) : 0;
+
+  const html = `<div class="player-tabs">${btns}</div>
+  <div class="player-card">
+    <div class="player-header">
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:${color}">${p}</div>
+        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+          <span style="font-size:0.72rem;color:var(--muted)">Матчей: <b style="color:var(--text)">${stats.played}</b></span>
+          <span style="font-size:0.72rem;color:var(--teal)">✓ ${stats.exact}</span>
+          <span style="font-size:0.72rem;color:var(--blue)">≈ ${stats.diff}</span>
+          <span style="font-size:0.72rem;color:var(--purple)">→ ${stats.res}</span>
+          <span style="font-size:0.72rem;color:var(--muted)">Попадание: <b style="color:${color}">${stats.played>0?acc+'%':'—'}</b></span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:2rem;font-weight:900;color:${color};line-height:1">${stats.pts}</div>
+        <div style="font-size:0.65rem;color:var(--muted)">очков</div>
+      </div>
+    </div>
+    ${rows || '<div style="padding:20px;text-align:center;color:var(--muted)">Нет ставок</div>'}
+  </div>`;
+
+  document.getElementById('panel-player').innerHTML = html;
+}
 
 function renderViz(){
   const stats = getStats();
@@ -355,22 +439,106 @@ function renderAll(){
   renderBoard(stats);renderBets();renderMatches();renderRules();
 }
 
+let expandedPlayer = null;
+
+function getRank(stats) {
+  // Assign ranks respecting ties
+  const ranks = [];
+  let rank = 1;
+  for (let i = 0; i < stats.length; i++) {
+    if (i > 0 && stats[i].pts < stats[i-1].pts) rank = i + 1;
+    ranks.push(rank);
+  }
+  return ranks;
+}
+
+function renderPlayerDetail(playerName) {
+  const p = playerName;
+  const origIdx = PLAYERS.indexOf(p);
+  const color = PLAYER_COLORS[origIdx];
+  const playedMatches = MATCHES.filter(m => m.result && m.bets[p]);
+  const sortedMatches = [...playedMatches].sort((a, b) => {
+    const ra = calcScore(a.bets[p], a.result);
+    const rb = calcScore(b.bets[p], b.result);
+    return (rb ? rb.pts : 0) - (ra ? ra.pts : 0);
+  });
+
+  return `<div style="background:var(--bg);border-radius:0 0 12px 12px;overflow:hidden;border:1px solid ${color}44;border-top:none">
+    ${sortedMatches.map(m => {
+      const bet = m.bets[p];
+      const r = calcScore(bet, m.result);
+      const ptsColor = r ? TC[r.type] : 'var(--muted)';
+      const typeLabel = r ? (r.type==='exact'?'точно':r.type==='diff'?'разница':r.type==='res'?'исход':'мимо') : '';
+      const typeBg = r ? (r.type==='exact'?'#00d4a018':r.type==='diff'?'#38bdf818':r.type==='res'?'#a78bfa18':'#f8717118') : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid #0a0e1a">
+        <div style="flex:1;font-size:0.8rem">
+          <span style="font-weight:600">${m.home} — ${m.away}</span>
+          <span style="color:var(--muted);font-size:0.68rem;margin-left:6px">${m.date}</span>
+        </div>
+        <div style="font-weight:700;font-size:0.82rem;color:${color};min-width:34px;text-align:center">${bet[0]}:${bet[1]}</div>
+        <div style="color:var(--muted);font-size:0.72rem">→</div>
+        <div style="font-weight:700;font-size:0.82rem;min-width:34px;text-align:center">${m.result[0]}:${m.result[1]}</div>
+        <div style="min-width:60px;text-align:right">
+          <span style="background:${typeBg};color:${ptsColor};font-size:0.68rem;padding:2px 7px;border-radius:10px;font-weight:600">${typeLabel}</span>
+        </div>
+        <div style="font-weight:800;font-size:0.88rem;color:${ptsColor};min-width:28px;text-align:right">${r&&r.pts>0?'+'+r.pts:r?'✕':'—'}</div>
+      </div>`;
+    }).join('')}
+    ${MATCHES.filter(m => !m.result && m.bets[p]).map(m => {
+      const bet = m.bets[p];
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid #0a0e1a;opacity:0.5">
+        <div style="flex:1;font-size:0.8rem"><span style="font-weight:600">${m.home} — ${m.away}</span><span style="color:var(--muted);font-size:0.68rem;margin-left:6px">${m.date}</span></div>
+        <div style="font-weight:700;font-size:0.82rem;color:${color};min-width:34px;text-align:center">${bet[0]}:${bet[1]}</div>
+        <div style="color:var(--muted);font-size:0.72rem">→</div>
+        <div style="color:var(--muted);font-size:0.82rem;min-width:34px;text-align:center">?</div>
+        <div style="min-width:60px;text-align:right"><span style="color:var(--muted);font-size:0.68rem">ожидается</span></div>
+        <div style="min-width:28px"></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function togglePlayer(name) {
+  expandedPlayer = expandedPlayer === name ? null : name;
+  const stats = getStats();
+  renderBoard(stats);
+}
+
 function renderBoard(stats){
-  const medals=['🥇','🥈','🥉'];
-  document.getElementById('panel-board').innerHTML=stats.map((p,i)=>{
-    const isFirst=i===0&&p.pts>0;
-    const tags=[
+  const ranks = getRank(stats);
+  const rankEmoji = ['🥇','🥈','🥉'];
+
+  document.getElementById('panel-board').innerHTML = stats.map((p, i) => {
+    const rank = ranks[i];
+    const isFirst = rank === 1 && p.pts > 0;
+    const origIdx = PLAYERS.indexOf(p.name);
+    const color = PLAYER_COLORS[origIdx];
+    const isExpanded = expandedPlayer === p.name;
+    const tags = [
       p.exact>0?`<span class="tag tag-teal">✓ ${p.exact} точных</span>`:'',
       p.diff>0?`<span class="tag tag-blue">≈ ${p.diff} разница</span>`:'',
       p.res>0?`<span class="tag tag-purple">→ ${p.res} исход</span>`:'',
       p.played===0?`<span style="font-size:0.72rem;color:var(--muted)">матчей не сыграно</span>`:'',
     ].join('');
-    return`<div class="lb-card ${isFirst?'leader':''}">
-      <div class="lb-rank ${i<3?'top':''}">${medals[i]||i+1}</div>
-      <div style="flex:1"><div style="font-weight:700;font-size:0.95rem">${p.name}</div><div class="lb-tags">${tags}</div></div>
-      <div><div class="lb-pts" style="color:${isFirst?'var(--gold)':'var(--text)'}">${p.pts}</div><div class="lb-pts-lbl">очков</div></div>
+
+    return `<div style="margin-bottom:${isExpanded?'0':'8px'}">
+      <div class="lb-card ${isFirst?'leader':''}" onclick="togglePlayer('${p.name}')" style="cursor:pointer;border-radius:${isExpanded?'12px 12px 0 0':'12px'};border-color:${isExpanded?color+'88':''}">
+        <div class="lb-rank ${rank<=3?'top':''}">${rankEmoji[rank-1]||rank}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.95rem;color:${isExpanded?color:'var(--text)'}">${p.name}</div>
+          <div class="lb-tags">${tags}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div>
+            <div class="lb-pts" style="color:${isFirst?'var(--gold)':isExpanded?color:'var(--text)'}">${p.pts}</div>
+            <div class="lb-pts-lbl">очков</div>
+          </div>
+          <div style="color:var(--muted);font-size:0.9rem;transition:transform 0.2s;transform:rotate(${isExpanded?'90':'0'}deg)">›</div>
+        </div>
+      </div>
+      ${isExpanded ? renderPlayerDetail(p.name) : ''}
     </div>`;
-  }).join('')+`<div class="pts-legend">✓ точный счёт = 3 · ≈ разница мячей = 2 · → исход = 1</div>`;
+  }).join('') + `<div class="pts-legend">✓ точный счёт = 3 · ≈ разница мячей = 2 · → исход = 1<br><span style="font-size:0.68rem">нажми на игрока чтобы увидеть детали</span></div>`;
 }
 
 function renderBets(){
