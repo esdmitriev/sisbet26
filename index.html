@@ -919,15 +919,21 @@ function renderBracket(){
     }
   });
 
-  // SF left (col 3)
-  tbdBox(cX[3], sfY(), WSF);
+  // SF left (col 3) — winner of QF1 vs QF2
+  html+=`<div style="position:absolute;left:${cX[3]}px;top:${sfY()}px;width:${WSF}px">
+    ${teamRow('Поб. QF1','',undefined,false)}
+    ${teamRow('Поб. QF2','',undefined,false)}
+  </div>`;
   { const ymid=sfMid(), xR=cX[3]+WSF, xM=xR+GAP/2;
     hline(xR,ymid,xM);
-    const y0=sfMid(), y1=sfMid(); // only 1 SF per side — connector to FIN
     hline(xM,ymid,cX[4]); }
 
   // FIN (col 4)
-  tbdBox(cX[4], finY(), WFIN, '🏆 Финал · 19 июля');
+  html+=`<div style="position:absolute;left:${cX[4]}px;top:${finY()}px;width:${WFIN}px">
+    ${teamRow('Поб. SF1','',undefined,false)}
+    ${teamRow('Поб. SF2','',undefined,false)}
+    <div style="font-size:0.59rem;color:#f0c040;text-align:center;padding:2px 0">🏆 Финал · 19 июля</div>
+  </div>`;
 
   // ====== RIGHT SIDE ======
   // R16 right (col 8)
@@ -961,8 +967,11 @@ function renderBracket(){
     }
   });
 
-  // SF right (col 5)
-  tbdBox(cX[5], sfY(), WSF);
+  // SF right (col 5) — winner of QF3 vs QF4
+  html+=`<div style="position:absolute;left:${cX[5]}px;top:${sfY()}px;width:${WSF}px">
+    ${teamRow('Поб. QF3','',undefined,false)}
+    ${teamRow('Поб. QF4','',undefined,false)}
+  </div>`;
   { hline(cX[4]+WFIN, sfMid(), cX[5]); }
 
   svg+=`</svg>`;
