@@ -335,6 +335,8 @@ const MATCHES = [
     bets:{"Виктор Б.":[3,1],"Андрей С.":[2,1],"Игорь М.":[3,1],"Евгений":[2,0],"Иван С.":[1,0]} },
   { id:96, date:"07.07", home:"Швейцария", away:"Колумбия", result:[0,0],
     bets:{"Виктор Б.":[2,1],"Андрей С.":[1,2],"Игорь М.":[0,0],"Евгений":[1,1],"Иван С.":[0,1]} },
+  { id:97, date:"09.07", home:"Франция", away:"Марокко", result:[2,0],
+    bets:{"Виктор Б.":[3,1],"Андрей С.":[3,2],"Игорь М.":[2,2],"Евгений":[2,0],"Иван С.":[1,2]} },
 ];
 
 
@@ -659,12 +661,12 @@ function renderBracket(){
     'Аргентина':'🇦🇷','Швейцария':'🇨🇭','Испания':'🇪🇸','Португалия':'🇵🇹',
     'США':'🇺🇸','Бельгия':'🇧🇪','Англия':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Колумбия':'🇨🇴',
     'Хорватия':'🇭🇷','Австрия':'🇦🇹','Босния':'🇧🇦','Сенегал':'🇸🇳',
-    'ДР Конго':'🇨🇩','ТБД':'·'
+    'ДР Конго':'🇨🇩','Кабо-Верде':'🇨🇻','Алжир':'🇩🇿','Гана':'🇬🇭','ТБД':'·'
   };
   function flag(n){ return FL[n]||'🏳'; }
 
   function teamRow(name, score, won, upcoming){
-    const cls = !name||name==='ТБД' ? 'tbd' : won===true ? 'winner' : won===false ? 'loser' : '';
+    const cls = !name||name==='ТБД'||name.startsWith('Поб') ? 'tbd' : won===true ? 'winner' : won===false ? 'loser' : '';
     const borderClr = upcoming ? 'var(--teal)' : 'var(--border)';
     return `<div class="bk-team ${cls}" style="border-color:${borderClr}">
       <span class="bk-flag">${flag(name)}</span>
@@ -673,194 +675,96 @@ function renderBracket(){
     </div>`;
   }
 
-  // CORRECT bracket data based on actual WC 2026 bracket
-  // Left side (top half):
-  // R16 slot 0: ЮАР–Канада → Канада → vs Нидерланды–Марокко → Марокко
-  // R16 slot 1: Нидерланды–Марокко → Марокко
-  // R16 slot 2: Бразилия–Япония → Бразилия → vs Кот-д'Ивуар–Норвегия → Норвегия
-  // R16 slot 3: Кот-д'Ивуар–Норвегия → Норвегия
-  // R16 slot 4: Германия–Парагвай → Парагвай → vs Франция–Швеция → Франция
-  // R16 slot 5: Франция–Швеция → Франция
-  // R16 slot 6: Мексика–Эквадор → Мексика → vs Англия–ДР Конго → Англия
-  // R16 slot 7: Англия–ДР Конго → Англия
+  // CORRECT bracket — verified from championat.com
+  // LEFT SIDE:
+  // R16: Германия/Парагвай, Франция/Швеция, ЮАР/Канада, Нидерланды/Марокко,
+  //      Португалия/Хорватия, Испания/Австрия, США/Босния, Бельгия/Сенегал
+  // R8:  Парагвай–Франция → Франция, Канада–Марокко → Марокко,
+  //      Португалия–Испания → Испания, США–Бельгия → Бельгия
+  // QF:  Франция–Марокко → Франция, Испания–Бельгия (upcoming)
+  // SF:  Франция vs Поб.QF2
 
-  // Right side (bottom half):
-  // R16 slot 0: Испания–Австрия → Испания → vs Португалия–Хорватия → Португалия
-  // R16 slot 1: Португалия–Хорватия → Португалия
-  // R16 slot 2: США–Босния → США → vs Бельгия–Сенегал → Бельгия
-  // R16 slot 3: Бельгия–Сенегал → Бельгия
-  // R16 slot 4: Аргентина–Кабо-Верде → Аргентина → vs Австралия–Египет → Египет
-  // R16 slot 5: Австралия–Египет → Египет
-  // R16 slot 6: Бразилия–Норвегия → Норвегия (r2) vs Мексика–Англия → Англия (r2)
-  // R16 slot 7: Швейцария–Колумбия → Швейцария
+  // RIGHT SIDE:
+  // R16: Бразилия/Япония, Кот-д'Ивуар/Норвегия, Мексика/Эквадор, Англия/ДР Конго,
+  //      Аргентина/Кабо-Верде, Австралия/Египет, Аргентина/Египет(r2), Швейцария/Колумбия
+  // R8:  Бразилия–Норвегия → Норвегия, Мексика–Англия → Англия,
+  //      Аргентина–Египет → Аргентина, Швейцария–Колумбия → Швейцария
+  // QF:  Норвегия–Англия (upcoming), Аргентина–Швейцария (upcoming)
+  // SF:  Поб.QF3 vs Поб.QF4
 
-  const R16L = [
-    {t1:'ЮАР',        t2:'Канада',     s1:0,s2:1,done:true},
-    {t1:'Нидерланды', t2:'Марокко',    s1:1,s2:1,note:'пен 2:3',done:true},
-    {t1:'Бразилия',   t2:'Япония',     s1:2,s2:1,done:true},
-    {t1:"Кот-д'Ивуар",t2:'Норвегия',   s1:1,s2:2,done:true},
-    {t1:'Германия',   t2:'Парагвай',   s1:1,s2:1,note:'пен 3:4',done:true},
-    {t1:'Франция',    t2:'Швеция',     s1:3,s2:0,done:true},
-    {t1:'Мексика',    t2:'Эквадор',    s1:2,s2:0,done:true},
-    {t1:'Англия',     t2:'ДР Конго',   s1:2,s2:1,done:true},
+  const R16_L = [
+    {t1:'Германия',   t2:'Парагвай',  s1:1,s2:1,note:'пен 3:4',done:true},
+    {t1:'Франция',    t2:'Швеция',    s1:3,s2:0,done:true},
+    {t1:'ЮАР',        t2:'Канада',    s1:0,s2:1,done:true},
+    {t1:'Нидерланды', t2:'Марокко',   s1:1,s2:1,note:'пен 2:3',done:true},
+    {t1:'Португалия', t2:'Хорватия',  s1:2,s2:1,done:true},
+    {t1:'Испания',    t2:'Австрия',   s1:3,s2:0,done:true},
+    {t1:'США',        t2:'Босния',    s1:2,s2:0,done:true},
+    {t1:'Бельгия',    t2:'Сенегал',   s1:2,s2:2,note:'пен 3:1',done:true},
   ];
-  const R16R = [
-    {t1:'Испания',    t2:'Австрия',    s1:3,s2:0,done:true},
-    {t1:'Португалия', t2:'Хорватия',   s1:2,s2:1,done:true},
-    {t1:'США',        t2:'Босния',     s1:2,s2:0,done:true},
-    {t1:'Бельгия',    t2:'Сенегал',    s1:2,s2:2,note:'пен 3:1',done:true},
-    {t1:'Аргентина',  t2:'Кабо-Верде', s1:2,s2:2,note:'д.в. 3:2',done:true},
-    {t1:'Австралия',  t2:'Египет',     s1:1,s2:1,note:'пен 2:4',done:true},
-    {t1:'Бразилия',   t2:'Норвегия',   s1:1,s2:2,done:true},
-    {t1:'Швейцария',  t2:'Колумбия',   s1:0,s2:0,note:'пен 4:3',done:true},
+  const R8_L = [
+    {t1:'Парагвай',   t2:'Франция',   s1:0,s2:1,done:true},
+    {t1:'Канада',     t2:'Марокко',   s1:0,s2:3,done:true},
+    {t1:'Португалия', t2:'Испания',   s1:0,s2:1,done:true},
+    {t1:'США',        t2:'Бельгия',   s1:1,s2:4,done:true},
   ];
-  const R8L = [
-    {t1:'Канада',   t2:'Марокко',  s1:0,s2:3,done:true},
-    {t1:'Норвегия', t2:'Англия',   upcoming:true,done:false},  // QF upcoming
-    {t1:'Парагвай', t2:'Франция',  s1:0,s2:1,done:true},
-    {t1:'Мексика',  t2:'Англия',   s1:2,s2:3,done:true},
+  const QF_L = [
+    {t1:'Франция',    t2:'Марокко',   s1:2,s2:0,done:true},
+    {t1:'Испания',    t2:'Бельгия',   done:false,upcoming:true},
   ];
-  const R8R = [
-    {t1:'Португалия',t2:'Испания', s1:0,s2:1,done:true},
-    {t1:'США',       t2:'Бельгия', s1:1,s2:4,done:true},
-    {t1:'Аргентина', t2:'Египет',  s1:3,s2:2,done:true},
-    {t1:'Мексика',   t2:'Англия',  s1:2,s2:3,done:true},
-  ];
+  const SF_L = {t1:'Франция',t2:'Поб. QF2',done:false};
 
-  // Correct R8: winners of R16 pairs
-  // Left: R16L[0,1]→Канада,Марокко; R16L[2,3]→Норвегия×2; R16L[4,5]→Парагвай,Франция; R16L[6,7]→Мексика,Англия
-  const R8LeftCorrect = [
-    {t1:'Канада',   t2:'Марокко',  s1:0,s2:3,done:true},         // Канада vs Марокко
-    {t1:'Норвегия', t2:'Мексика',  done:false, upcoming:false},    // placeholder — actually Норвегия/Бразилия vs Мексика/Англия
-    {t1:'Парагвай', t2:'Франция',  s1:0,s2:1,done:true},
-    {t1:'Мексика',  t2:'Англия',   s1:2,s2:3,done:true},
+  const R16_R = [
+    {t1:'Бразилия',   t2:'Япония',    s1:2,s2:1,done:true},
+    {t1:"Кот-д'Ивуар",t2:'Норвегия',  s1:1,s2:2,done:true},
+    {t1:'Мексика',    t2:'Эквадор',   s1:2,s2:0,done:true},
+    {t1:'Англия',     t2:'ДР Конго',  s1:2,s2:1,done:true},
+    {t1:'Аргентина',  t2:'Кабо-Верде',s1:2,s2:2,note:'д.в. 3:2',done:true},
+    {t1:'Австралия',  t2:'Египет',    s1:1,s2:1,note:'пен 2:4',done:true},
+    {t1:'Аргентина',  t2:'Египет',    s1:3,s2:2,done:true},
+    {t1:'Швейцария',  t2:'Колумбия',  s1:0,s2:0,note:'пен 4:3',done:true},
   ];
-  // Right: Испания,Португалия; США,Бельгия; Аргентина,Египет; Норвегия,Швейцария
-  const R8RightCorrect = [
-    {t1:'Португалия',t2:'Испания', s1:0,s2:1,done:true},
-    {t1:'США',       t2:'Бельгия', s1:1,s2:4,done:true},
-    {t1:'Аргентина', t2:'Египет',  s1:3,s2:2,done:true},
-    {t1:'Норвегия',  t2:'Швейцария',done:false,upcoming:false},  // placeholder
+  const R8_R = [
+    {t1:'Бразилия',   t2:'Норвегия',  s1:1,s2:2,done:true},
+    {t1:'Мексика',    t2:'Англия',    s1:2,s2:3,done:true},
+    {t1:'Аргентина',  t2:'Египет',    s1:3,s2:2,done:true},
+    {t1:'Швейцария',  t2:'Колумбия',  s1:0,s2:0,note:'пен 4:3',done:true},
   ];
+  const QF_R = [
+    {t1:'Норвегия',   t2:'Англия',    done:false,upcoming:true},
+    {t1:'Аргентина',  t2:'Швейцария', done:false,upcoming:true},
+  ];
+  const SF_R = {t1:'Поб. QF3',t2:'Поб. QF4',done:false};
 
-  // Actual 1/8 final pairings (confirmed from sources):
-  // Парагвай — Франция 0:1  (winners: Франция)
-  // Канада — Марокко 0:3    (winners: Марокко)  → QF: Франция vs Марокко ✓
-  // Бразилия — Норвегия 1:2 (winners: Норвегия)
-  // Мексика — Англия 2:3    (winners: Англия)   → QF: Норвегия vs Англия ✓
-  // Португалия — Испания 0:1(winners: Испания)
-  // США — Бельгия 1:4       (winners: Бельгия)  → QF: Испания vs Бельгия ✓
-  // Аргентина — Египет 3:2  (winners: Аргентина)
-  // Швейцария — Колумбия 0:0 пен 4:3 (winners: Швейцария) → QF: Аргентина vs Швейцария ✓
-
-  // So correct 1/8 left side feeds:
-  // [ЮАР/Канада + Нидерланды/Марокко] → Канада–Марокко (Марокко wins)
-  // [Бразилия/Япония + Кот-д'Ивуар/Норвегия] → Бразилия–Норвегия (but wait...)
-
-  // Actually R8 left is:
-  // Парагвай–Франция → from [Германия/Парагвай + Франция/Швеция]
-  // Канада–Марокко → from [ЮАР/Канада + Нидерланды/Марокко]
-  // Бразилия–Норвегия → from [Бразилия/Япония + Кот-д'Ивуар/Норвегия]
-  // Мексика–Англия → from [Мексика/Эквадор + Англия/ДР Конго]
-
-  // R8 right:
-  // Португалия–Испания → from [Испания/Австрия + Португалия/Хорватия]
-  // США–Бельгия → from [США/Босния + Бельгия/Сенегал]
-  // Аргентина–Египет → from [Аргентина/Кабо-Верде + Австралия/Египет]
-  // Швейцария–Колумбия → from [Бразилия/Норвегия(r2?) + Швейцария/Колумбия]
-  // Wait - Бразилия/Норвегия is already in left. So right r8 last = Мексика/Англия vs Швейцария/Колумбия? No.
-  // From Sport24: Right side = Аргентина-Египет, Швейцария-Колумбия
-
-  // Final correct ordering:
-  // LEFT R16 (top→bot): ЮАР/Канада, Нидерланды/Марокко, Германия/Парагвай, Франция/Швеция, Бразилия/Япония, Кот-д'Ивуар/Норвегия, Мексика/Эквадор, Англия/ДР Конго
-  // LEFT R8: Канада–Марокко, Парагвай–Франция, Норвегия–(Бразилия/Норвегия), Мексика–Англия
-  // Actually simpler: keep as shown in sources
-
-  const R16_LEFT = [
-    {t1:'ЮАР',t2:'Канада',s1:0,s2:1,done:true},
-    {t1:'Нидерланды',t2:'Марокко',s1:1,s2:1,note:'пен 2:3',done:true},
-    {t1:'Германия',t2:'Парагвай',s1:1,s2:1,note:'пен 3:4',done:true},
-    {t1:'Франция',t2:'Швеция',s1:3,s2:0,done:true},
-    {t1:'Бразилия',t2:'Япония',s1:2,s2:1,done:true},
-    {t1:"Кот-д'Ивуар",t2:'Норвегия',s1:1,s2:2,done:true},
-    {t1:'Мексика',t2:'Эквадор',s1:2,s2:0,done:true},
-    {t1:'Англия',t2:'ДР Конго',s1:2,s2:1,done:true},
-  ];
-  const R8_LEFT = [
-    {t1:'Канада',t2:'Марокко',s1:0,s2:3,done:true},
-    {t1:'Парагвай',t2:'Франция',s1:0,s2:1,done:true},
-    {t1:'Бразилия',t2:'Норвегия',s1:1,s2:2,done:true},
-    {t1:'Мексика',t2:'Англия',s1:2,s2:3,done:true},
-  ];
-  const QF_LEFT = [
-    {t1:'Франция',t2:'Марокко',done:false,upcoming:true},
-    {t1:'Норвегия',t2:'Англия',done:false,upcoming:true},
-  ];
-
-  const R16_RIGHT = [
-    {t1:'Испания',t2:'Австрия',s1:3,s2:0,done:true},
-    {t1:'Португалия',t2:'Хорватия',s1:2,s2:1,done:true},
-    {t1:'США',t2:'Босния',s1:2,s2:0,done:true},
-    {t1:'Бельгия',t2:'Сенегал',s1:2,s2:2,note:'пен 3:1',done:true},
-    {t1:'Аргентина',t2:'Кабо-Верде',s1:2,s2:2,note:'д.в. 3:2',done:true},
-    {t1:'Австралия',t2:'Египет',s1:1,s2:1,note:'пен 2:4',done:true},
-    {t1:'Аргентина',t2:'Египет',s1:3,s2:2,done:true},
-    {t1:'Швейцария',t2:'Колумбия',s1:0,s2:0,note:'пен 4:3',done:true},
-  ];
-  const R8_RIGHT = [
-    {t1:'Португалия',t2:'Испания',s1:0,s2:1,done:true},
-    {t1:'США',t2:'Бельгия',s1:1,s2:4,done:true},
-    {t1:'Аргентина',t2:'Египет',s1:3,s2:2,done:true},
-    {t1:'Швейцария',t2:'Колумбия',s1:0,s2:0,note:'пен 4:3',done:true},
-  ];
-  const QF_RIGHT = [
-    {t1:'Испания',t2:'Бельгия',done:false,upcoming:true},
-    {t1:'Аргентина',t2:'Швейцария',done:false,upcoming:true},
-  ];
+  const FIN = {t1:'Поб. SF1',t2:'Поб. SF2',done:false};
 
   // Layout
-  const W16=160, W8=164, WQF=164, WSF=164, WFIN=164;
+  const W16=158, W8=162, WQF=162, WSF=162, WFIN=162;
   const GAP=22;
   const teamH=29, pairH=teamH*2;
   const rowGap=12;
   const rowH=pairH+rowGap;
-  const padTop=40;
+  const padTop=44;
   const lineColor='rgba(255,255,255,0.75)';
   const lw=1.5;
 
   const totalW = W16+GAP+W8+GAP+WQF+GAP+WSF+GAP+WFIN+GAP+WSF+GAP+WQF+GAP+W8+GAP+W16+40;
   const totalH = padTop + 8*rowH + 60;
 
-  // Column X positions
   let cX=[], cx=20;
   [W16,W8,WQF,WSF,WFIN,WSF,WQF,W8,W16].forEach(w=>{ cX.push(cx); cx+=w+GAP; });
 
-  // Y helpers
-  const midY = (i,n) => padTop + i*rowH*(8/n) + pairH/2; // midpoint of match i in a round with n matches total spanning 8 slots
-  const matchTopY = (i,n) => padTop + i*(8/n)*rowH + ((8/n)*rowH - pairH)/2;
-
-  // Simpler: for n matches evenly spaced in totalH-padTop
-  const slotH = rowH; // each R16 match gets rowH
-  // R16: 8 matches, each at padTop + i*slotH
-  const r16Y = i => padTop + i*slotH;
+  const r16Y = i => padTop + i*rowH;
   const r16Mid = i => r16Y(i) + pairH/2;
-
-  // R8: 4 matches, each centered between pairs of R16
   const r8Y = i => { const y0=r16Mid(i*2), y1=r16Mid(i*2+1); return (y0+y1)/2 - pairH/2; };
   const r8Mid = i => r8Y(i) + pairH/2;
-
-  // QF: 2 matches, centered between pairs of R8
   const qfY = i => { const y0=r8Mid(i*2), y1=r8Mid(i*2+1); return (y0+y1)/2 - pairH/2; };
   const qfMid = i => qfY(i) + pairH/2;
-
-  // SF: 1 match centered between QF 0 and 1
   const sfY = () => { const y0=qfMid(0), y1=qfMid(1); return (y0+y1)/2 - pairH/2; };
   const sfMid = () => sfY() + pairH/2;
-
-  const finY = sfY; // same center
+  const finY = sfY;
   const finMid = sfMid;
 
-  // Render
   let html = `<div style="position:relative;overflow-x:auto;padding-bottom:16px"><div style="position:relative;min-width:${totalW}px;height:${totalH}px">`;
   let svg = `<svg style="position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;pointer-events:none">`;
 
@@ -879,115 +783,74 @@ function renderBracket(){
     </div>`;
   }
 
-  function tbdBox(x,y,w,label){
+  function simpleBox(t1,t2,x,y,w,label){
     html+=`<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px">
-      ${teamRow('ТБД','',undefined,false)}
-      ${teamRow('ТБД','',undefined,false)}
+      ${teamRow(t1,'',undefined,false)}
+      ${teamRow(t2,'',undefined,false)}
       ${label?`<div style="font-size:0.59rem;color:#f0c040;text-align:center;padding:2px 0">${label}</div>`:''}
     </div>`;
   }
 
-  // ====== LEFT SIDE ======
-  // R16 left (col 0)
-  R16_LEFT.forEach((m,i)=>{
+  // === LEFT SIDE ===
+  R16_L.forEach((m,i)=>{
     matchBox(m, cX[0], r16Y(i), W16);
     if(i%2===0){
-      const y0=r16Mid(i), y1=r16Mid(i+1), mid=(y0+y1)/2, xR=cX[0]+W16, xM=xR+GAP/2;
-      hline(xR,y0,xM); hline(xR,y1,xM); vline(xM,y0,y1); hline(xM,mid,cX[1]);
+      const y0=r16Mid(i),y1=r16Mid(i+1),mid=(y0+y1)/2,xM=cX[0]+W16+GAP/2;
+      hline(cX[0]+W16,y0,xM); hline(cX[0]+W16,y1,xM); vline(xM,y0,y1); hline(xM,mid,cX[1]);
     }
   });
-
-  // R8 left (col 1)
-  R8_LEFT.forEach((m,i)=>{
+  R8_L.forEach((m,i)=>{
     matchBox(m, cX[1], r8Y(i), W8);
-    const ymid=r8Mid(i), xR=cX[1]+W8, xM=xR+GAP/2;
-    hline(xR,ymid,xM);
-    if(i%2===0){
-      const y0=r8Mid(i), y1=r8Mid(i+1), mid=(y0+y1)/2;
-      vline(xM,y0,y1); hline(xM,mid,cX[2]);
-    }
+    const ymid=r8Mid(i), xM=cX[1]+W8+GAP/2;
+    hline(cX[1]+W8,ymid,xM);
+    if(i%2===0){ const y0=r8Mid(i),y1=r8Mid(i+1),mid=(y0+y1)/2; vline(xM,y0,y1); hline(xM,mid,cX[2]); }
   });
-
-  // QF left (col 2)
-  QF_LEFT.forEach((m,i)=>{
+  QF_L.forEach((m,i)=>{
     matchBox(m, cX[2], qfY(i), WQF);
-    const ymid=qfMid(i), xR=cX[2]+WQF, xM=xR+GAP/2;
-    hline(xR,ymid,xM);
-    if(i%2===0){
-      const y0=qfMid(0), y1=qfMid(1), mid=(y0+y1)/2;
-      vline(xM,y0,y1); hline(xM,mid,cX[3]);
-    }
+    const ymid=qfMid(i), xM=cX[2]+WQF+GAP/2;
+    hline(cX[2]+WQF,ymid,xM);
+    if(i%2===0){ const y0=qfMid(0),y1=qfMid(1),mid=(y0+y1)/2; vline(xM,y0,y1); hline(xM,mid,cX[3]); }
   });
+  simpleBox(SF_L.t1, SF_L.t2, cX[3], sfY(), WSF);
+  { const ymid=sfMid(), xM=cX[3]+WSF+GAP/2; hline(cX[3]+WSF,ymid,xM); hline(xM,ymid,cX[4]); }
 
-  // SF left (col 3) — winner of QF1 vs QF2
-  html+=`<div style="position:absolute;left:${cX[3]}px;top:${sfY()}px;width:${WSF}px">
-    ${teamRow('Поб. QF1','',undefined,false)}
-    ${teamRow('Поб. QF2','',undefined,false)}
-  </div>`;
-  { const ymid=sfMid(), xR=cX[3]+WSF, xM=xR+GAP/2;
-    hline(xR,ymid,xM);
-    hline(xM,ymid,cX[4]); }
+  // FIN
+  simpleBox(FIN.t1, FIN.t2, cX[4], finY(), WFIN, '🏆 Финал · 19 июля');
 
-  // FIN (col 4)
-  html+=`<div style="position:absolute;left:${cX[4]}px;top:${finY()}px;width:${WFIN}px">
-    ${teamRow('Поб. SF1','',undefined,false)}
-    ${teamRow('Поб. SF2','',undefined,false)}
-    <div style="font-size:0.59rem;color:#f0c040;text-align:center;padding:2px 0">🏆 Финал · 19 июля</div>
-  </div>`;
-
-  // ====== RIGHT SIDE ======
-  // R16 right (col 8)
-  R16_RIGHT.forEach((m,i)=>{
+  // === RIGHT SIDE ===
+  R16_R.forEach((m,i)=>{
     matchBox(m, cX[8], r16Y(i), W16);
     if(i%2===0){
-      const y0=r16Mid(i), y1=r16Mid(i+1), mid=(y0+y1)/2, xL=cX[8], xM=xL-GAP/2;
-      hline(xM,y0,xL); hline(xM,y1,xL); vline(xM,y0,y1); hline(cX[7]+W8,mid,xM);
+      const y0=r16Mid(i),y1=r16Mid(i+1),mid=(y0+y1)/2,xM=cX[8]-GAP/2;
+      hline(xM,y0,cX[8]); hline(xM,y1,cX[8]); vline(xM,y0,y1); hline(cX[7]+W8,mid,xM);
     }
   });
-
-  // R8 right (col 7)
-  R8_RIGHT.forEach((m,i)=>{
+  R8_R.forEach((m,i)=>{
     matchBox(m, cX[7], r8Y(i), W8);
-    const ymid=r8Mid(i), xL=cX[7], xM=xL-GAP/2;
-    hline(xM,ymid,xL);
-    if(i%2===0){
-      const y0=r8Mid(i), y1=r8Mid(i+1), mid=(y0+y1)/2;
-      vline(xM,y0,y1); hline(cX[6]+WQF,mid,xM);
-    }
+    const ymid=r8Mid(i), xM=cX[7]-GAP/2;
+    hline(xM,ymid,cX[7]);
+    if(i%2===0){ const y0=r8Mid(i),y1=r8Mid(i+1),mid=(y0+y1)/2; vline(xM,y0,y1); hline(cX[6]+WQF,mid,xM); }
   });
-
-  // QF right (col 6)
-  QF_RIGHT.forEach((m,i)=>{
+  QF_R.forEach((m,i)=>{
     matchBox(m, cX[6], qfY(i), WQF);
-    const ymid=qfMid(i), xL=cX[6], xM=xL-GAP/2;
-    hline(xM,ymid,xL);
-    if(i%2===0){
-      const y0=qfMid(0), y1=qfMid(1), mid=(y0+y1)/2;
-      vline(xM,y0,y1); hline(cX[5]+WSF,mid,xM);
-    }
+    const ymid=qfMid(i), xM=cX[6]-GAP/2;
+    hline(xM,ymid,cX[6]);
+    if(i%2===0){ const y0=qfMid(0),y1=qfMid(1),mid=(y0+y1)/2; vline(xM,y0,y1); hline(cX[5]+WSF,mid,xM); }
   });
-
-  // SF right (col 5) — winner of QF3 vs QF4
-  html+=`<div style="position:absolute;left:${cX[5]}px;top:${sfY()}px;width:${WSF}px">
-    ${teamRow('Поб. QF3','',undefined,false)}
-    ${teamRow('Поб. QF4','',undefined,false)}
-  </div>`;
+  simpleBox(SF_R.t1, SF_R.t2, cX[5], sfY(), WSF);
   { hline(cX[4]+WFIN, sfMid(), cX[5]); }
 
   svg+=`</svg>`;
 
   // Headers
-  const hdrs=[
-    {l:'1/16',x:cX[0],w:W16},{l:'1/8',x:cX[1],w:W8},{l:'1/4',x:cX[2],w:WQF},
-    {l:'1/2',x:cX[3],w:WSF},{l:'🏆 Финал',x:cX[4],w:WFIN,gold:true},
-    {l:'1/2',x:cX[5],w:WSF},{l:'1/4',x:cX[6],w:WQF},{l:'1/8',x:cX[7],w:W8},{l:'1/16',x:cX[8],w:W16}
-  ];
-  hdrs.forEach(h=>{
+  [{l:'1/16',x:cX[0],w:W16},{l:'1/8',x:cX[1],w:W8},{l:'1/4',x:cX[2],w:WQF},
+   {l:'1/2',x:cX[3],w:WSF},{l:'🏆 Финал',x:cX[4],w:WFIN,gold:true},
+   {l:'1/2',x:cX[5],w:WSF},{l:'1/4',x:cX[6],w:WQF},{l:'1/8',x:cX[7],w:W8},{l:'1/16',x:cX[8],w:W16}
+  ].forEach(h=>{
     html+=`<div style="position:absolute;left:${h.x}px;width:${h.w}px;top:8px;text-align:center;font-size:0.63rem;font-weight:700;color:${h.gold?'#f0c040':'var(--muted)'};text-transform:uppercase;letter-spacing:0.5px">${h.l}</div>`;
   });
 
-  html+=svg;
-  html+=`</div></div>`;
+  html+=svg+'</div></div>';
 
   document.getElementById('panel-bracket').innerHTML=`
     <div style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;text-align:center">
